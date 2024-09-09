@@ -62,8 +62,24 @@ con.query("SELECT channel FROM channels", function (err, result, fields) {
     }
     // DEBUG 
 
+
     if(message.toLowerCase().startsWith('!math')) { mathHandler.calculate(client,channel, message)}
 
+    const lowerCaseMessage = message.toLowerCase();
+    if (lowerCaseMessage.startsWith('!type')) {
+        const parts = lowerCaseMessage.split(' ');
+        const type = parts[1];
+        const context = parts[2] ? parts[2] : 'both'; // Defaults to 'both' if not specified
+        
+        const validContexts = ['attack', 'defense', 'both'];
+        if (!validContexts.includes(context)) {
+          client.say(channel, `Invalid context "${context}". Please use "attack", "defense", or leave it blank for both.`);
+          return;
+        }
+        
+        const response = handleTypeCommand(type, context);
+        client.say(channel, response);
+      }
   
     if(message.toLowerCase() === '!infomsg') { var_dump(tags);}
   
@@ -518,7 +534,254 @@ else if(message.toLowerCase().startsWith('!newviewer')) {
   });
 
 });
+// HANDLE TYPE COMMAND
+function handleTypeCommand(type, context = 'both') {
+  const typeData = typeMatchups[type];
 
+  if (!typeData) {
+    return `Invalid type "${type}". Please try again.`;
+  }
+
+  // Format attack information
+  const attackEffective = typeData.attack.effectiveAgainst.length > 0 ? typeData.attack.effectiveAgainst.join(', ') : 'None';
+  const attackWeak = typeData.attack.weakAgainst.length > 0 ? typeData.attack.weakAgainst.join(', ') : 'None';
+  const attackNoEffect = typeData.attack.noEffectAgainst.length > 0 ? typeData.attack.noEffectAgainst.join(', ') : 'None';
+  const attackInfo = `Attacking - Strong: ${attackEffective} | Weak: ${attackWeak} | No Effect: ${attackNoEffect}`;
+
+  // Format defense information
+  const defenseWeak = typeData.defense.weakAgainst.length > 0 ? typeData.defense.weakAgainst.join(', ') : 'None';
+  const defenseImmune = typeData.defense.immuneAgainst.length > 0 ? typeData.defense.immuneAgainst.join(', ') : 'None';
+  const defenseResist = typeData.defense.resistantAgainst.length > 0 ? typeData.defense.resistantAgainst.join(', ') : 'None';
+  const defenseInfo = `Defending - Weak: ${defenseWeak} | Immune: ${defenseImmune} | Resistant: ${defenseResist}`;
+
+  // Handle the specific context: attack, defense, or both
+  if (context === 'attack') {
+    return `${type} Type: ${attackInfo}`;
+  } else if (context === 'defense') {
+    return `${type} Type: ${defenseInfo}`;
+  } else {
+    return `${type} Type: ${attackInfo} ; ${defenseInfo}`;
+  }
+}
+
+const typeMatchups = {
+  Normal: {
+    attack: {
+      effectiveAgainst: [], 
+      weakAgainst: ['Rock'], 
+      noEffectAgainst: ['Ghost']
+    },
+    defense: {
+      weakAgainst: ['Fighting'], 
+      immuneAgainst: ['Ghost'], 
+      resistantAgainst: []
+    }
+  },
+  Fire: {
+    attack: {
+      effectiveAgainst: ['Grass', 'Bug', 'Ice', 'Steel'],
+      weakAgainst: ['Water', 'Rock', 'Fire', 'Dragon'],
+      noEffectAgainst: []
+    },
+    defense: {
+      weakAgainst: ['Water', 'Ground', 'Rock'],
+      immuneAgainst: [],
+      resistantAgainst: ['Fire', 'Grass', 'Ice', 'Bug', 'Steel', 'Fairy']
+    }
+  },
+  Water: {
+    attack: {
+      effectiveAgainst: ['Fire', 'Ground', 'Rock'],
+      weakAgainst: ['Water', 'Grass', 'Electric'],
+      noEffectAgainst: []
+    },
+    defense: {
+      weakAgainst: ['Electric', 'Grass'],
+      immuneAgainst: [],
+      resistantAgainst: ['Fire', 'Water', 'Ice', 'Steel']
+    }
+  },
+  Grass: {
+    attack: {
+      effectiveAgainst: ['Water', 'Ground', 'Rock'],
+      weakAgainst: ['Fire', 'Bug', 'Flying', 'Poison', 'Ice'],
+      noEffectAgainst: []
+    },
+    defense: {
+      weakAgainst: ['Fire', 'Bug', 'Flying', 'Poison', 'Ice'],
+      immuneAgainst: [],
+      resistantAgainst: ['Water', 'Grass', 'Electric', 'Ground']
+    }
+  },
+  Electric: {
+    attack: {
+      effectiveAgainst: ['Water', 'Flying'],
+      weakAgainst: ['Electric', 'Ground'],
+      noEffectAgainst: []
+    },
+    defense: {
+      weakAgainst: ['Ground'],
+      immuneAgainst: [],
+      resistantAgainst: ['Electric', 'Flying', 'Steel']
+    }
+  },
+  Ground: {
+    attack: {
+      effectiveAgainst: ['Fire', 'Electric', 'Poison', 'Rock', 'Steel'],
+      weakAgainst: ['Water', 'Grass', 'Ice'],
+      noEffectAgainst: []
+    },
+    defense: {
+      weakAgainst: ['Water', 'Grass', 'Ice'],
+      immuneAgainst: ['Electric'],
+      resistantAgainst: ['Poison', 'Rock']
+    }
+  },
+  Rock: {
+    attack: {
+      effectiveAgainst: ['Fire', 'Ice', 'Flying', 'Bug'],
+      weakAgainst: ['Water', 'Grass', 'Fighting', 'Ground', 'Steel'],
+      noEffectAgainst: []
+    },
+    defense: {
+      weakAgainst: ['Water', 'Grass', 'Fighting', 'Ground', 'Steel'],
+      immuneAgainst: [],
+      resistantAgainst: ['Normal', 'Fire', 'Flying', 'Poison']
+    }
+  },
+  Steel: {
+    attack: {
+      effectiveAgainst: ['Ice', 'Rock', 'Fairy'],
+      weakAgainst: ['Fire', 'Fighting', 'Ground'],
+      noEffectAgainst: []
+    },
+    defense: {
+      weakAgainst: ['Fire', 'Fighting', 'Ground'],
+      immuneAgainst: [],
+      resistantAgainst: ['Normal', 'Grass', 'Ice', 'Flying', 'Psychic', 'Bug', 'Rock', 'Dragon', 'Steel', 'Fairy']
+    }
+  },
+  Bug: {
+    attack: {
+      effectiveAgainst: ['Grass', 'Psychic', 'Dark'],
+      weakAgainst: ['Fire', 'Flying', 'Rock'],
+      noEffectAgainst: []
+    },
+    defense: {
+      weakAgainst: ['Fire', 'Flying', 'Rock'],
+      immuneAgainst: [],
+      resistantAgainst: ['Grass', 'Fighting', 'Ground']
+    }
+  },
+  Flying: {
+    attack: {
+      effectiveAgainst: ['Grass', 'Bug', 'Fighting'],
+      weakAgainst: ['Electric', 'Rock', 'Ice'],
+      noEffectAgainst: []
+    },
+    defense: {
+      weakAgainst: ['Electric', 'Rock', 'Ice'],
+      immuneAgainst: [],
+      resistantAgainst: ['Grass', 'Fighting', 'Bug']
+    }
+  },
+  Psychic: {
+    attack: {
+      effectiveAgainst: ['Fighting', 'Poison'],
+      weakAgainst: ['Bug', 'Ghost', 'Dark'],
+      noEffectAgainst: []
+    },
+    defense: {
+      weakAgainst: ['Bug', 'Ghost', 'Dark'],
+      immuneAgainst: [],
+      resistantAgainst: ['Fighting', 'Psychic']
+    }
+  },
+  Poison: {
+    attack: {
+      effectiveAgainst: ['Grass', 'Fairy'],
+      weakAgainst: ['Poison', 'Ground', 'Rock', 'Ghost'],
+      noEffectAgainst: []
+    },
+    defense: {
+      weakAgainst: ['Ground', 'Psychic'],
+      immuneAgainst: [],
+      resistantAgainst: ['Grass', 'Fighting', 'Poison', 'Bug', 'Fairy']
+    }
+  },
+  Fighting: {
+    attack: {
+      effectiveAgainst: ['Normal', 'Rock', 'Steel', 'Ice', 'Dark'],
+      weakAgainst: ['Flying', 'Psychic', 'Fairy'],
+      noEffectAgainst: []
+    },
+    defense: {
+      weakAgainst: ['Flying', 'Psychic', 'Fairy'],
+      immuneAgainst: [],
+      resistantAgainst: ['Bug', 'Rock', 'Dark']
+    }
+  },
+  Dark: {
+    attack: {
+      effectiveAgainst: ['Psychic', 'Ghost'],
+      weakAgainst: ['Fighting', 'Bug', 'Fairy'],
+      noEffectAgainst: []
+    },
+    defense: {
+      weakAgainst: ['Fighting', 'Bug', 'Fairy'],
+      immuneAgainst: [],
+      resistantAgainst: ['Ghost', 'Dark']
+    }
+  },
+  Ghost: {
+    attack: {
+      effectiveAgainst: ['Psychic', 'Ghost'],
+      weakAgainst: ['Ghost', 'Dark'],
+      noEffectAgainst: []
+    },
+    defense: {
+      weakAgainst: ['Ghost', 'Dark'],
+      immuneAgainst: ['Normal', 'Fighting'],
+      resistantAgainst: ['Poison', 'Bug']
+    }
+  },
+  Ice: {
+    attack: {
+      effectiveAgainst: ['Grass', 'Ground', 'Flying', 'Dragon'],
+      weakAgainst: ['Fire', 'Fighting', 'Rock', 'Steel'],
+      noEffectAgainst: []
+    },
+    defense: {
+      weakAgainst: ['Fire', 'Fighting', 'Rock', 'Steel'],
+      immuneAgainst: [],
+      resistantAgainst: ['Ice']
+    }
+  },
+  Dragon: {
+    attack: {
+      effectiveAgainst: ['Dragon'],
+      weakAgainst: ['Steel', 'Fairy'],
+      noEffectAgainst: []
+    },
+    defense: {
+      weakAgainst: ['Ice', 'Dragon', 'Fairy'],
+      immuneAgainst: [],
+      resistantAgainst: ['Fire', 'Water', 'Electric', 'Grass']
+    }
+  },
+  Fairy: {
+    attack: {
+      effectiveAgainst: ['Fighting', 'Dragon', 'Dark'],
+      weakAgainst: ['Poison', 'Steel'],
+      noEffectAgainst: []
+    },
+    defense: {
+      weakAgainst: ['Poison', 'Steel'],
+      immuneAgainst: [],
+      resistantAgainst: ['Fighting', 'Bug', 'Dark', 'Fairy']
+    }
+  }
+};
 
 
 function httpGet(url,key){
